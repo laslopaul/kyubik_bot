@@ -1,0 +1,7 @@
+{
+  "Server" : "http://127.0.0.1:8080",
+  "Username" : "admin",
+  "Password" : "your_qbittorrent_user",
+  "TelegramUser" : "user",
+  "Token" : "telegram_bot_token"
+}

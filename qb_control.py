@@ -1,5 +1,6 @@
-# qb_control.py - implements commands of Qbittorrent WebAPI that are necessary for the bot
-# Reference: https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)
+# qb_control.py
+# Implements commands of Qbittorrent WebAPI that are necessary for the bot
+# https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)
 
 import json
 import os.path
@@ -12,6 +13,7 @@ class LoginError(requests.exceptions.RequestException):
 
 class QBWebAPI:
     """Class that implements main Qbittorrent WebAPI commands"""
+
     def __init__(self, config_path: str) -> None:
         if os.path.exists(config_path):
             with open(config_path) as f:
@@ -37,7 +39,9 @@ class QBWebAPI:
 
         r = requests.post(api_method, headers=header_dict, data=auth_dict)
         if not r.ok:
-            raise requests.exceptions.HTTPError('Your IP is banned for too many failed login attempts')
+            raise requests.exceptions.HTTPError(
+                'Your IP is banned for too many failed login attempts'
+            )
         elif r.ok and r.text == 'Fails.':
             raise LoginError('Incorrect username or password')
         elif r.ok and r.text == 'Ok.':
@@ -56,13 +60,19 @@ class QBWebAPI:
         return r.text
 
     def _get_hashdict(self) -> None:
-        """Get dictionary mapping torrent names to their hashes for search purposes"""
+        """
+        Get dictionary mapping torrent names to their hashes
+        for search purposes
+
+        """
         api_method = self.server + '/api/v2/torrents/info'
         # Getting info about all torrents on the server
         r = requests.get(api_method, cookies=self._auth_cookie)
         torrents = r.json()
         # Adding torrents names and hashes to a dictionary
-        self.hashdict = {torrent['name']: torrent['hash'] for torrent in torrents}
+        self.hashdict = {
+            torrent['name']: torrent['hash'] for torrent in torrents
+        }
 
     def _search_hash(self, torrent_name: str):
         """Searches a torrent by its name and returns its hash"""

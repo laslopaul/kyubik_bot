@@ -120,8 +120,8 @@ class QBWebAPI:
             upl = hsize(torrent['uploaded']) + "/s"
             ulspeed = hsize(torrent['upspeed'])
             tdata = [
-                torrent['name'], size, downl, progress, dlspeed, compl,
-                seeds_leechs, upl, ulspeed
+                torrent['name'], torrent['state'], size, downl, progress,
+                dlspeed, compl, seeds_leechs, upl, ulspeed
             ]
             return tdata
 

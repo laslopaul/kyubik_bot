@@ -3,10 +3,12 @@
 # https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)
 
 
-from ctypes import Union
+from typing import Union
 import json
 import os.path
-import requests
+import requests as req
+from human_readable_size import human_readable_size as hsize
+from datetime import datetime as dt
 
 
 class QBWebAPI:
@@ -30,32 +32,32 @@ class QBWebAPI:
 
     def _login(self, username: str, password: str) -> None:
         """Performs login to the server"""
-        api_method = self.base_url.format("auth", "login")
+        cmd = self.base_url.format("auth", "login")
         header_dict = {"Referer": self.server}
         auth_dict = {"username": username, "password": password}
 
-        r = requests.post(api_method, headers=header_dict, data=auth_dict)
+        r = req.post(cmd, headers=header_dict, data=auth_dict)
         if not r.ok:
-            raise requests.exceptions.ConnectionError(
+            raise req.exceptions.ConnectionError(
                 "Your IP is banned for too many failed login attempts"
             )
         elif r.ok and r.text == "Fails.":
-            raise requests.exceptions.ConnectionError(
+            raise req.exceptions.ConnectionError(
                 "Incorrect username or password"
             )
         elif r.ok and r.text == "Ok.":
             # Login successful, getting auth cookie
             sid = r.headers["set-cookie"].split(";")[0]
-            self._auth_cookie = {sid[:3]: sid[4:]}
+            self._token = {sid[:3]: sid[4:]}
 
     def _logout(self) -> None:
-        api_method = self.base_url.format("auth", "logout")
-        requests.get(api_method, cookies=self._auth_cookie)
+        cmd = self.base_url.format("auth", "logout")
+        req.get(cmd, cookies=self._token)
 
     def _get_default_save_path(self) -> str:
         """Get default path for saving downloads"""
-        api_method = self.base_url.format("app", "defaultSavePath")
-        return requests.get(api_method, cookies=self._auth_cookie).text
+        cmd = self.base_url.format("app", "defaultSavePath")
+        return req.get(cmd, cookies=self._token).text
 
     def _get_hashdict(self) -> None:
         """
@@ -63,9 +65,9 @@ class QBWebAPI:
         for search purposes
 
         """
-        api_method = self.base_url.format("torrents", "info")
+        cmd = self.base_url.format("torrents", "info")
         # Getting info about all torrents on the server
-        torrents = requests.get(api_method, cookies=self._auth_cookie).json()
+        torrents = req.get(cmd, cookies=self._token).json()
         # Adding torrents names and hashes to a dictionary
         self.hashdict = {
             torrent["name"]: torrent["hash"] for torrent in torrents
@@ -83,3 +85,44 @@ class QBWebAPI:
             except IndexError:
                 return None
             i += 1
+
+    def torrent_info(self, handle: str) -> Union[list, None]:
+        """
+        Returns info about a particular torrent or prints a list of torrents
+        filtered by their state (all, downloaded, seeding, etc)
+        """
+        torrent_states = [
+            '*all', '*downloaded', '*seeding', '*completed', '*paused',
+            '*active', '*inactive', '*errored'
+        ]
+        # Assuming that the handle represents a torrent state
+        if handle in torrent_states:
+            handle = handle[1:]
+            cmd = self.base_url.format("torrents", "info")
+            r = req.get(cmd, cookies=self._token, params={'filter': handle})
+            torrents = r.json()
+            return [torrent['name'] for torrent in torrents]
+
+        # Assuming that the handle represents a torrent name
+        if self._search_hash(handle) is not None:
+            hash = self._search_hash(handle)
+            cmd = self.base_url.format("torrents", "info")
+            r = req.get(cmd, cookies=self._token, params={'hashes': hash})
+            torrent = r.json()[0]
+
+            # Finally compiling data for our bot into a list
+            size = hsize(torrent['size'])
+            downl = hsize(torrent['downloaded'])
+            progress = format(torrent['progress'] * 100, '.2f') + "%"
+            dlspeed = hsize(torrent['dlspeed']) + "/s"
+            compl = str(dt.fromtimestamp(torrent['completion_on']))
+            seeds_leechs = f"{torrent['num_seeds']}/{torrent['num_leechs']}"
+            upl = hsize(torrent['uploaded']) + "/s"
+            ulspeed = hsize(torrent['upspeed'])
+            tdata = [
+                torrent['name'], size, downl, progress, dlspeed, compl,
+                seeds_leechs, upl, ulspeed
+            ]
+            return tdata
+
+        return None

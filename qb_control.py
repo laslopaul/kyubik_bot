@@ -86,7 +86,7 @@ class QBWebAPI:
                 return None
             i += 1
 
-    def torrent_info(self, handle: str) -> Union[str, list, None]:
+    def torrent_info(self, handle: str) -> Union[list, str]:
         """
         Returns info about a particular torrent or yields torrent names
         filtered by their state (all, downloaded, seeding, etc)
@@ -126,15 +126,31 @@ class QBWebAPI:
             ]
             return tdata
 
-        return None
+        return "Torrent not found"
 
-    def torrent_contents(self, torrent_name: str) -> Union[list, None]:
+    def torrent_contents(self, torrent_name: str) -> Union[list, str]:
         """Show contents of a torrent"""
         if self._search_hash(torrent_name) is None:
-            return None
+            return "Torrent not found"
         hash = self._search_hash(torrent_name)
         cmd = self.base_url.format("torrents", "files")
         files = req.get(cmd, cookies=self._token, params={'hash': hash}).json()
         for file in files:
             progress = format(file['progress'] * 100, '.2f') + "%"
             yield [file['name'], hsize(file['size']), progress]
+
+    def pause_resume(self, torrent_name=0, action="pause") -> str:
+        """
+        Pause/resume a torrent. If torrent_name = 0, pause/resume all torrents
+        """
+        if torrent_name != 0 and self._search_hash(torrent_name) is not None:
+            hash = self._search_hash(torrent_name)
+            cmd = self.base_url.format("torrents", action)
+            req.get(cmd, cookies=self._token, params={'hashes': hash})
+            return f"Torrent {action}d"
+        if torrent_name == 0:
+            cmd = self.base_url.format("torrents", action)
+            req.get(cmd, cookies=self._token, params={'hashes': 'all'})
+            return f"All torrents {action}d"
+
+        return "Torrent not found"

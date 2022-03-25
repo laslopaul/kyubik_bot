@@ -126,3 +126,14 @@ class QBWebAPI:
             return tdata
 
         return None
+
+    def torrent_contents(self, torrent_name: str) -> Union[list, None]:
+        """Show contents of a torrent"""
+        if self._search_hash(torrent_name) is None:
+            return None
+        hash = self._search_hash(torrent_name)
+        cmd = self.base_url.format("torrents", "files")
+        files = req.get(cmd, cookies=self._token, params={'hash': hash}).json()
+        for file in files:
+            progress = format(file['progress'] * 100, '.2f') + "%"
+            yield [file['name'], hsize(file['size']), progress]

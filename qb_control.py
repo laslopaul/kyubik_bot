@@ -86,9 +86,9 @@ class QBWebAPI:
                 return None
             i += 1
 
-    def torrent_info(self, handle: str) -> Union[list, None]:
+    def torrent_info(self, handle: str) -> Union[str, list, None]:
         """
-        Returns info about a particular torrent or prints a list of torrents
+        Returns info about a particular torrent or yields torrent names
         filtered by their state (all, downloaded, seeding, etc)
         """
         torrent_states = [
@@ -101,7 +101,8 @@ class QBWebAPI:
             cmd = self.base_url.format("torrents", "info")
             r = req.get(cmd, cookies=self._token, params={'filter': handle})
             torrents = r.json()
-            return [torrent['name'] for torrent in torrents]
+            for torrent in torrents:
+                yield torrent['name']
 
         # Assuming that the handle represents a torrent name
         if self._search_hash(handle) is not None:

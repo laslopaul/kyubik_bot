@@ -48,16 +48,16 @@ class QBWebAPI:
         elif r.ok and r.text == "Ok.":
             # Login successful, getting auth cookie
             sid = r.headers["set-cookie"].split(";")[0]
-            self._token = {sid[:3]: sid[4:]}
+            self.__token = {sid[:3]: sid[4:]}
 
     def _logout(self) -> None:
         cmd = self.base_url.format("auth", "logout")
-        req.get(cmd, cookies=self._token)
+        req.get(cmd, cookies=self.__token)
 
     def _get_default_save_path(self) -> str:
         """Get default path for saving downloads"""
         cmd = self.base_url.format("app", "defaultSavePath")
-        return req.get(cmd, cookies=self._token).text
+        return req.get(cmd, cookies=self.__token).text
 
     def _get_hashdict(self) -> None:
         """
@@ -67,7 +67,7 @@ class QBWebAPI:
         """
         cmd = self.base_url.format("torrents", "info")
         # Getting info about all torrents on the server
-        torrents = req.get(cmd, cookies=self._token).json()
+        torrents = req.get(cmd, cookies=self.__token).json()
         # Adding torrents names and hashes to a dictionary
         self.hashdict = {
             torrent["name"]: torrent["hash"] for torrent in torrents
@@ -99,7 +99,7 @@ class QBWebAPI:
         if handle in torrent_states:
             handle = handle[1:]
             cmd = self.base_url.format("torrents", "info")
-            r = req.get(cmd, cookies=self._token, params={'filter': handle})
+            r = req.get(cmd, cookies=self.__token, params={'filter': handle})
             torrents = r.json()
             for torrent in torrents:
                 yield torrent['name']
@@ -108,7 +108,7 @@ class QBWebAPI:
         if self._search_hash(handle) is not None:
             hash = self._search_hash(handle)
             cmd = self.base_url.format("torrents", "info")
-            r = req.get(cmd, cookies=self._token, params={'hashes': hash})
+            r = req.get(cmd, cookies=self.__token, params={'hashes': hash})
             torrent = r.json()[0]
 
             # Finally compiling data for our bot into a list
@@ -118,8 +118,8 @@ class QBWebAPI:
             dlspeed = hsize(torrent['dlspeed']) + "/s"
             compl = str(dt.fromtimestamp(torrent['completion_on']))
             seeds_leechs = f"{torrent['num_seeds']}/{torrent['num_leechs']}"
-            upl = hsize(torrent['uploaded']) + "/s"
-            ulspeed = hsize(torrent['upspeed'])
+            upl = hsize(torrent['uploaded'])
+            ulspeed = hsize(torrent['upspeed']) + '/s'
             tdata = [
                 torrent['name'], torrent['state'], size, downl, progress,
                 dlspeed, compl, seeds_leechs, upl, ulspeed
@@ -134,10 +134,23 @@ class QBWebAPI:
             return "Torrent not found"
         hash = self._search_hash(torrent_name)
         cmd = self.base_url.format("torrents", "files")
-        files = req.get(cmd, cookies=self._token, params={'hash': hash}).json()
-        for file in files:
+        files = req.get(cmd, cookies=self.__token, params={'hash': hash})
+        for file in files.json():
             progress = format(file['progress'] * 100, '.2f') + "%"
             yield [file['name'], hsize(file['size']), progress]
+
+    def traffic_stats(self) -> list:
+        """Get global transfer info (usually seen in qB status bar)"""
+        cmd = self.base_url.format("transfer", "info")
+        stats = req.get(cmd, cookies=self.__token).json()
+        dlspeed = hsize(stats['dl_info_speed']) + "/s"
+        dldata = hsize(stats['dl_info_data'])
+        ulspeed = hsize(stats['up_info_speed']) + "/s"
+        uldata = hsize(stats['up_info_data'])
+        dht = str(stats["dht_nodes"])
+        return [
+            stats['connection_status'], dlspeed, dldata, ulspeed, uldata, dht
+        ]
 
     def pause_resume(self, torrent_name=0, action="pause") -> str:
         """
@@ -146,11 +159,11 @@ class QBWebAPI:
         if torrent_name != 0 and self._search_hash(torrent_name) is not None:
             hash = self._search_hash(torrent_name)
             cmd = self.base_url.format("torrents", action)
-            req.get(cmd, cookies=self._token, params={'hashes': hash})
+            req.get(cmd, cookies=self.__token, params={'hashes': hash})
             return f"Torrent {action}d"
         if torrent_name == 0:
             cmd = self.base_url.format("torrents", action)
-            req.get(cmd, cookies=self._token, params={'hashes': 'all'})
+            req.get(cmd, cookies=self.__token, params={'hashes': 'all'})
             return f"All torrents {action}d"
 
         return "Torrent not found"

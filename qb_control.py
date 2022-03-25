@@ -1,7 +1,9 @@
-# qb_control.py
-# Implements commands of Qbittorrent WebAPI that are necessary for the bot
-# https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)
-
+"""
+Module qb_control\n
+Implements commands of Qbittorrent WebAPI that are necessary for the bot.\n
+Full API specification is available at:
+https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)
+"""
 
 from typing import Union
 import json
@@ -178,6 +180,30 @@ class QBWebAPI:
             cmd = self.base_url.format("torrents", "delete")
             p = {"hashes": hash, "deleteFiles": delete_files}
             req.get(cmd, cookies=self.__token, params=p)
+            # Updating hashdict after torrent removal
+            self._get_hashdict()
             return "Torrent deleted"
 
         return "Torrent not found"
+
+    def add_torrent(self, url: str, save_path='', seq_dl=False) -> str:
+        """
+        Adds new torrent from url attribute
+        (supported links: HTTP, HTTPS, magnet and bc://bt/).
+        If save_path is empty, uses default saving path
+        specified in qB settings.
+        If seq_dl is True, enables sequential download of files.
+        """
+        # Forming data package to be uploaded in POST request
+        d = {'urls': url, 'sequentialDownload': seq_dl}
+        if save_path != '':
+            d['savepath'] = save_path
+        # Sending POST request
+        cmd = self.base_url.format("torrents", "add")
+        r = req.post(cmd, cookies=self.__token, data=d)
+        # Analyzing response
+        if r.status_code == 415:
+            return "Torrent file is not valid"
+        # If status_code is not 415, update hashdict
+        self._get_hashdict()
+        return "Torrent added successfully"

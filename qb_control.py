@@ -19,18 +19,28 @@ class QBWebAPI:
 
     def __init__(self, config_path: str) -> None:
         if not os.path.exists(config_path):
-            raise OSError("Configuration file not found")
+            quit("Config file not found")
 
         with open(config_path) as f:
-            conf = json.load(f)
-        self.server: str = conf["Server"]
+            try:
+                conf = json.load(f)
+            except json.JSONDecodeError:
+                quit("Cannot parse config file")
+        try:
+            self.server: str = conf["Server"]
+        except KeyError:
+            quit("Server URL is not specified in config file")
         self.base_url = self.server + "/api/v2/{}/{}"
-        self._login(conf["Username"], conf["Password"])
+        try:
+            self._login(conf["Username"], conf["Password"])
+        except KeyError:
+            quit("Login credentials are not specified in config file")
         self._get_hashdict()
 
     def __del__(self) -> None:
         """Performs logout before deleting QBWebAPI instance"""
-        self._logout()
+        if hasattr(self, '__token'):
+            self._logout()
         del self
 
     def _login(self, username: str, password: str) -> None:
@@ -41,13 +51,9 @@ class QBWebAPI:
 
         r = req.post(cmd, headers=header_dict, data=auth_dict)
         if not r.ok:
-            raise req.exceptions.ConnectionError(
-                "Your IP is banned for too many failed login attempts"
-            )
+            quit("Your IP is banned for too many failed login attempts")
         elif r.ok and r.text == "Fails.":
-            raise req.exceptions.ConnectionError(
-                "Incorrect username or password"
-            )
+            quit("Incorrect username or password")
         elif r.ok and r.text == "Ok.":
             # Login successful, getting auth cookie
             sid = r.headers["set-cookie"].split(";")[0]

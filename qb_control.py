@@ -6,8 +6,6 @@ https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)
 """
 
 from typing import Generator, Union
-import json
-import os.path
 import requests as req
 from human_readable_size import human_readable_size as hsize
 from datetime import datetime as dt
@@ -17,24 +15,13 @@ from datetime import timedelta
 class QBWebAPI:
     """Class that implements main Qbittorrent WebAPI commands"""
 
-    def __init__(self, config_path: str) -> None:
-        if not os.path.exists(config_path):
-            quit("Config file not found")
-
-        with open(config_path) as f:
-            try:
-                conf = json.load(f)
-            except json.JSONDecodeError:
-                quit("Cannot parse config file")
-        try:
-            self.server: str = conf["Server"]
-        except KeyError:
-            quit("Server URL is not specified in config file")
+    def __init__(self, server, username, password: str) -> None:
+        self.server = server
+        self.__username = username
+        self.__password = password
         self.base_url = self.server + "/api/v2/{}/{}"
-        try:
-            self._login(conf["Username"], conf["Password"])
-        except KeyError:
-            quit("Login credentials are not specified in config file")
+
+        self._login(self.__username, self.__password)
         self._get_hashdict()
 
     def __del__(self) -> None:

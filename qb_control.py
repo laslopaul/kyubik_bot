@@ -216,7 +216,7 @@ class QBWebAPI:
         r = req.post(cmd, cookies=self.__token, data=d)
         # Analyzing response
         if r.status_code == 415:
-            return "Torrent file is not valid"
+            return "Torrent link is not valid"
         # If status_code is not 415, update hashdict
         self._get_hashdict()
         return "Torrent added successfully"

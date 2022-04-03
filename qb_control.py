@@ -171,17 +171,17 @@ class QBWebAPI:
         """
         Pause/resume a torrent. If torrent_name = 0, pause/resume all torrents
         """
-        if torrent_name != 0 and self._search_hash(torrent_name) is not None:
-            hash = self._search_hash(torrent_name)
-            cmd = self.base_url.format("torrents", action)
-            req.get(cmd, cookies=self.__token, params={'hashes': hash})
-            return f"Torrent {action}d"
         if torrent_name == 0:
             cmd = self.base_url.format("torrents", action)
             req.get(cmd, cookies=self.__token, params={'hashes': 'all'})
             return f"All torrents {action}d"
 
-        return "Torrent not found"
+        hash = self._search_hash(torrent_name)
+        if hash is None:
+            return "Torrent not found"
+        cmd = self.base_url.format("torrents", action)
+        req.get(cmd, cookies=self.__token, params={'hashes': hash})
+        return f"Torrent {action}d"
 
     def delete_torrent(self, torrent_name: str, delete_files=False) -> str:
         """

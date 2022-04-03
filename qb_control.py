@@ -5,7 +5,7 @@ Full API specification is available at:
 https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)
 """
 
-from typing import Union
+from typing import Generator, Union
 import json
 import os.path
 import requests as req
@@ -88,47 +88,49 @@ class QBWebAPI:
                 return None
             i += 1
 
-    def torrent_info(self, handle: str) -> Union[list, str]:
+    def torrent_info(self, torrent_name: str) -> Union[list, str]:
         """
-        Returns info about a particular torrent or yields torrent names
-        filtered by their state (all, downloaded, seeding, etc)
+        Returns detailed info about a particular torrent
         """
-        torrent_states = [
-            '*all', '*downloaded', '*seeding', '*completed', '*paused',
-            '*active', '*inactive', '*errored'
+        hash = self._search_hash(torrent_name)
+        if hash is None:
+            return "Torrent not found"
+        cmd = self.base_url.format("torrents", "info")
+        r = req.get(cmd, cookies=self.__token, params={'hashes': hash})
+        torrent = r.json()[0]
+
+        # Compiling data for our bot into a list
+        size = hsize(torrent['size'])
+        downl = hsize(torrent['downloaded'])
+        progress = format(torrent['progress'] * 100, '.2f') + "%"
+        dlspeed = hsize(torrent['dlspeed']) + "/s"
+        compl = str(dt.fromtimestamp(torrent['completion_on']))
+        seeds_leechs = f"{torrent['num_seeds']}/{torrent['num_leechs']}"
+        upl = hsize(torrent['uploaded'])
+        ulspeed = hsize(torrent['upspeed']) + '/s'
+        tdata = [
+            torrent['name'], torrent['state'], size, downl, progress,
+            dlspeed, compl, seeds_leechs, upl, ulspeed
         ]
-        # Assuming that the handle represents a torrent state
-        if handle in torrent_states:
-            handle = handle[1:]
-            cmd = self.base_url.format("torrents", "info")
-            r = req.get(cmd, cookies=self.__token, params={'filter': handle})
-            torrents = r.json()
-            for torrent in torrents:
-                yield torrent['name']
+        return tdata
 
-        # Assuming that the handle represents a torrent name
-        if self._search_hash(handle) is not None:
-            hash = self._search_hash(handle)
-            cmd = self.base_url.format("torrents", "info")
-            r = req.get(cmd, cookies=self.__token, params={'hashes': hash})
-            torrent = r.json()[0]
-
-            # Finally compiling data for our bot into a list
-            size = hsize(torrent['size'])
-            downl = hsize(torrent['downloaded'])
-            progress = format(torrent['progress'] * 100, '.2f') + "%"
-            dlspeed = hsize(torrent['dlspeed']) + "/s"
-            compl = str(dt.fromtimestamp(torrent['completion_on']))
-            seeds_leechs = f"{torrent['num_seeds']}/{torrent['num_leechs']}"
-            upl = hsize(torrent['uploaded'])
-            ulspeed = hsize(torrent['upspeed']) + '/s'
-            tdata = [
-                torrent['name'], torrent['state'], size, downl, progress,
-                dlspeed, compl, seeds_leechs, upl, ulspeed
-            ]
-            return tdata
-
-        return "Torrent not found"
+    def list_group(self, group: str) -> Generator[str, None, None]:
+        """
+        Yields torrent names filtered by their state
+        (all, downloaded, seeding, etc)
+        """
+        groups = [
+            'all', 'downloaded', 'seeding', 'completed', 'paused',
+            'active', 'inactive', 'errored'
+        ]
+        if group not in groups:
+            msg = "{}: unknown group. Available groups: {}"
+            raise ValueError(msg.format(group, ', '.join(groups)))
+        cmd = self.base_url.format("torrents", "info")
+        r = req.get(cmd, cookies=self.__token, params={'filter': group})
+        torrents = r.json()
+        for torrent in torrents:
+            yield torrent['name']
 
     def torrent_contents(self, torrent_name: str) -> Union[list, str]:
         """Show contents of a torrent"""

@@ -188,16 +188,15 @@ class QBWebAPI:
         Deletes a torrent.
         If delete_files is True, also deletes downloaded files
         """
-        if self._search_hash(torrent_name) is not None:
-            hash = self._search_hash(torrent_name)
-            cmd = self.base_url.format("torrents", "delete")
-            p = {"hashes": hash, "deleteFiles": delete_files}
-            req.get(cmd, cookies=self.__token, params=p)
-            # Updating hashdict after torrent removal
-            self._get_hashdict()
-            return "Torrent deleted"
-
-        return "Torrent not found"
+        hash = self._search_hash(torrent_name)
+        if hash is None:
+            return "Torrent not found"
+        cmd = self.base_url.format("torrents", "delete")
+        p = {"hashes": hash, "deleteFiles": delete_files}
+        req.get(cmd, cookies=self.__token, params=p)
+        # Updating hashdict after torrent removal
+        self._get_hashdict()
+        return "Torrent deleted"
 
     def add_torrent(self, url: str, save_path='', seq_dl=False) -> str:
         """

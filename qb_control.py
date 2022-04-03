@@ -11,6 +11,7 @@ import os.path
 import requests as req
 from human_readable_size import human_readable_size as hsize
 from datetime import datetime as dt
+from datetime import timedelta
 
 
 class QBWebAPI:
@@ -104,14 +105,25 @@ class QBWebAPI:
         downl = hsize(torrent['downloaded'])
         progress = format(torrent['progress'] * 100, '.2f') + "%"
         dlspeed = hsize(torrent['dlspeed']) + "/s"
-        compl = str(dt.fromtimestamp(torrent['completion_on']))
         seeds_leechs = f"{torrent['num_seeds']}/{torrent['num_leechs']}"
         upl = hsize(torrent['uploaded'])
         ulspeed = hsize(torrent['upspeed']) + '/s'
         tdata = [
             torrent['name'], torrent['state'], size, downl, progress,
-            dlspeed, compl, seeds_leechs, upl, ulspeed
+            dlspeed, seeds_leechs, upl, ulspeed
         ]
+        # Show 'Completed on' column for completed torrents
+        if progress == '100.00%':
+            tdata.insert(6, 'Completed on')
+            compl = str(dt.fromtimestamp(torrent['completion_on']))
+            tdata.insert(7, compl)
+        # Show 'ETA' column for torrents in progress
+        else:
+            tdata.insert(6, 'ETA')
+            eta = '∞'
+            if torrent['state'] == 'downloading':
+                eta = str(timedelta(seconds=torrent['eta']))
+            tdata.insert(7, eta)
         return tdata
 
     def list_group(self, group: str) -> Generator[str, None, None]:

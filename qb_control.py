@@ -90,9 +90,7 @@ class QBWebAPI:
             i += 1
 
     def torrent_info(self, torrent_name: str) -> Union[list, str]:
-        """
-        Returns detailed info about a particular torrent
-        """
+        """Returns detailed info about a particular torrent"""
         hash = self._search_hash(torrent_name)
         if hash is None:
             return "Torrent not found"
@@ -144,11 +142,12 @@ class QBWebAPI:
         for torrent in torrents:
             yield torrent['name']
 
-    def torrent_contents(self, torrent_name: str) -> Union[list, str]:
+    def torrent_contents(self, torrent_name: str) -> Generator[
+            list, None, None]:
         """Show contents of a torrent"""
-        if self._search_hash(torrent_name) is None:
-            return "Torrent not found"
         hash = self._search_hash(torrent_name)
+        if hash is None:
+            raise FileNotFoundError("Torrent not found")
         cmd = self.base_url.format("torrents", "files")
         files = req.get(cmd, cookies=self.__token, params={'hash': hash})
         for file in files.json():

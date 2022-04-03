@@ -39,7 +39,7 @@ class QBWebAPI:
 
     def __del__(self) -> None:
         """Performs logout before deleting QBWebAPI instance"""
-        if hasattr(self, '__token'):
+        if hasattr(self, "__token"):
             self._logout()
         del self
 
@@ -101,32 +101,39 @@ class QBWebAPI:
         if hash is None:
             return "Torrent not found"
         cmd = self.base_url.format("torrents", "info")
-        r = req.get(cmd, cookies=self.__token, params={'hashes': hash})
+        r = req.get(cmd, cookies=self.__token, params={"hashes": hash})
         torrent = r.json()[0]
 
         # Compiling data for our bot into a list
-        size = hsize(torrent['size'])
-        downl = hsize(torrent['downloaded'])
-        progress = format(torrent['progress'] * 100, '.2f') + "%"
-        dlspeed = hsize(torrent['dlspeed']) + "/s"
+        size = hsize(torrent["size"])
+        downl = hsize(torrent["downloaded"])
+        progress = format(torrent["progress"] * 100, ".2f") + "%"
+        dlspeed = hsize(torrent["dlspeed"]) + "/s"
         seeds_leechs = f"{torrent['num_seeds']}/{torrent['num_leechs']}"
-        upl = hsize(torrent['uploaded'])
-        ulspeed = hsize(torrent['upspeed']) + '/s'
+        upl = hsize(torrent["uploaded"])
+        ulspeed = hsize(torrent["upspeed"]) + "/s"
         tdata = [
-            torrent['name'], torrent['state'], size, downl, progress,
-            dlspeed, seeds_leechs, upl, ulspeed
+            torrent["name"],
+            torrent["state"],
+            size,
+            downl,
+            progress,
+            dlspeed,
+            seeds_leechs,
+            upl,
+            ulspeed,
         ]
         # Show 'Completed on' column for completed torrents
-        if progress == '100.00%':
-            tdata.insert(6, 'Completed on')
-            compl = str(dt.fromtimestamp(torrent['completion_on']))
+        if progress == "100.00%":
+            tdata.insert(6, "Completed on")
+            compl = str(dt.fromtimestamp(torrent["completion_on"]))
             tdata.insert(7, compl)
         # Show 'ETA' column for torrents in progress
         else:
-            tdata.insert(6, 'ETA')
-            eta = '∞'
-            if torrent['state'] == 'downloading':
-                eta = str(timedelta(seconds=torrent['eta']))
+            tdata.insert(6, "ETA")
+            eta = "∞"
+            if torrent["state"] == "downloading":
+                eta = str(timedelta(seconds=torrent["eta"]))
             tdata.insert(7, eta)
         return tdata
 
@@ -136,41 +143,53 @@ class QBWebAPI:
         (all, downloaded, seeding, etc)
         """
         groups = [
-            'all', 'downloaded', 'seeding', 'completed', 'paused',
-            'active', 'inactive', 'errored'
+            "all",
+            "downloaded",
+            "seeding",
+            "completed",
+            "paused",
+            "active",
+            "inactive",
+            "errored",
         ]
         if group not in groups:
             msg = "{}: unknown group. Available groups: {}"
-            raise ValueError(msg.format(group, ', '.join(groups)))
+            raise ValueError(msg.format(group, ", ".join(groups)))
         cmd = self.base_url.format("torrents", "info")
-        r = req.get(cmd, cookies=self.__token, params={'filter': group})
+        r = req.get(cmd, cookies=self.__token, params={"filter": group})
         torrents = r.json()
         for torrent in torrents:
-            yield torrent['name']
+            yield torrent["name"]
 
-    def torrent_contents(self, torrent_name: str) -> Generator[
-            list, None, None]:
+    def torrent_contents(
+        self, torrent_name: str
+    ) -> Generator[list, None, None]:
         """Show contents of a torrent"""
         hash = self._search_hash(torrent_name)
         if hash is None:
             raise FileNotFoundError("Torrent not found")
         cmd = self.base_url.format("torrents", "files")
-        files = req.get(cmd, cookies=self.__token, params={'hash': hash})
+        files = req.get(cmd, cookies=self.__token, params={"hash": hash})
         for file in files.json():
-            progress = format(file['progress'] * 100, '.2f') + "%"
-            yield [file['name'], hsize(file['size']), progress]
+            progress = format(file["progress"] * 100, ".2f") + "%"
+            yield [file["name"], hsize(file["size"]), progress]
 
     def traffic_stats(self) -> list:
         """Get global transfer info (usually seen in qB status bar)"""
         cmd = self.base_url.format("transfer", "info")
         stats = req.get(cmd, cookies=self.__token).json()
-        dlspeed = hsize(stats['dl_info_speed']) + "/s"
-        dldata = hsize(stats['dl_info_data'])
-        ulspeed = hsize(stats['up_info_speed']) + "/s"
-        uldata = hsize(stats['up_info_data'])
+        dlspeed = hsize(stats["dl_info_speed"]) + "/s"
+        dldata = hsize(stats["dl_info_data"])
+        ulspeed = hsize(stats["up_info_speed"]) + "/s"
+        uldata = hsize(stats["up_info_data"])
         dht = str(stats["dht_nodes"])
         return [
-            stats['connection_status'], dlspeed, dldata, ulspeed, uldata, dht
+            stats["connection_status"],
+            dlspeed,
+            dldata,
+            ulspeed,
+            uldata,
+            dht,
         ]
 
     def pause_resume(self, torrent_name=0, action="pause") -> str:
@@ -179,14 +198,14 @@ class QBWebAPI:
         """
         if torrent_name == 0:
             cmd = self.base_url.format("torrents", action)
-            req.get(cmd, cookies=self.__token, params={'hashes': 'all'})
+            req.get(cmd, cookies=self.__token, params={"hashes": "all"})
             return f"All torrents {action}d"
 
         hash = self._search_hash(torrent_name)
         if hash is None:
             return "Torrent not found"
         cmd = self.base_url.format("torrents", action)
-        req.get(cmd, cookies=self.__token, params={'hashes': hash})
+        req.get(cmd, cookies=self.__token, params={"hashes": hash})
         return f"Torrent {action}d"
 
     def delete_torrent(self, torrent_name: str, delete_files=False) -> str:
@@ -204,7 +223,7 @@ class QBWebAPI:
         self._get_hashdict()
         return "Torrent deleted"
 
-    def add_torrent(self, url: str, save_path='', seq_dl=False) -> str:
+    def add_torrent(self, url: str, save_path="", seq_dl=False) -> str:
         """
         Adds new torrent from url attribute
         (supported links: HTTP, HTTPS, magnet and bc://bt/).
@@ -213,9 +232,9 @@ class QBWebAPI:
         If seq_dl is True, enables sequential download of files.
         """
         # Forming data package to be uploaded in POST request
-        d = {'urls': url, 'sequentialDownload': seq_dl}
-        if save_path != '':
-            d['savepath'] = save_path
+        d = {"urls": url, "sequentialDownload": seq_dl}
+        if save_path != "":
+            d["savepath"] = save_path
         # Sending POST request
         cmd = self.base_url.format("torrents", "add")
         r = req.post(cmd, cookies=self.__token, data=d)

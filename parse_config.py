@@ -14,12 +14,13 @@ def parse_config(filename: str) -> dict:
         try:
             conf = json.load(f)
         except json.JSONDecodeError:
-            quit("Cannot parse config file")
+            quit("ERROR! Cannot parse config file")
     if type(conf) is not dict:
-        quit("Invalid JSON file")
-    if conf.get("Server") is None:
-        quit("Server URL is not specified in config file")
-    if conf.get("Username") is None or conf.get("Password") is None:
-        quit("Login credentials are not specified in config file")
+        quit("ERROR! Invalid JSON file")
+
+    params = ["Server", "Username", "Password", "TelegramUser", "Token"]
+    for p in params:
+        if conf.get(p) is None:
+            quit(f"ERROR! {p} not specified in config file")
 
     return conf

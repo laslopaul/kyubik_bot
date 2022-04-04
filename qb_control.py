@@ -15,7 +15,7 @@ from datetime import timedelta
 class QBWebAPI:
     """Class that implements main Qbittorrent WebAPI commands"""
 
-    def __init__(self, server, username, password: str) -> None:
+    def __init__(self, server: str, username: str, password: str) -> None:
         self.server = server
         self.__username = username
         self.__password = password

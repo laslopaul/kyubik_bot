@@ -86,7 +86,7 @@ class QBWebAPI:
         """Returns detailed info about a particular torrent"""
         hash = self._search_hash(torrent_name)
         if hash is None:
-            return "Torrent not found"
+            raise ValueError("Torrent not found")
         cmd = self.base_url.format("torrents", "info")
         r = req.get(cmd, cookies=self.__token, params={"hashes": hash})
         torrent = r.json()[0]
@@ -154,7 +154,7 @@ class QBWebAPI:
         """Show contents of a torrent"""
         hash = self._search_hash(torrent_name)
         if hash is None:
-            raise FileNotFoundError("Torrent not found")
+            raise ValueError("Torrent not found")
         cmd = self.base_url.format("torrents", "files")
         files = req.get(cmd, cookies=self.__token, params={"hash": hash})
         for file in files.json():

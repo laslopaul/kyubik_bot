@@ -22,7 +22,6 @@ class QBWebAPI:
         self.base_url = self.server + "/api/v2/{}/{}"
 
         self._login(self.__username, self.__password)
-        self._get_hashdict()
 
     def __del__(self) -> None:
         """Performs logout before deleting QBWebAPI instance"""
@@ -55,32 +54,15 @@ class QBWebAPI:
         cmd = self.base_url.format("app", "defaultSavePath")
         return req.get(cmd, cookies=self.__token).text
 
-    def _get_hashdict(self) -> None:
-        """
-        Get dictionary mapping torrent names to their hashes
-        for search purposes
-
-        """
-        cmd = self.base_url.format("torrents", "info")
-        # Getting info about all torrents on the server
-        torrents = req.get(cmd, cookies=self.__token).json()
-        # Adding torrents names and hashes to a dictionary
-        self.hashdict = {
-            torrent["name"]: torrent["hash"] for torrent in torrents
-        }
-
-    def _search_hash(self, torrent_name: str) -> Union[str, None]:
+    def _search_hash(self, query: str) -> Union[str, None]:
         """Searches a torrent by its name and returns its hash"""
-        i = 0
-        torrent_names = list(self.hashdict.keys())
-        torrent_hashes = list(self.hashdict.values())
-        while True:
-            try:
-                if torrent_name in torrent_names[i]:
-                    return torrent_hashes[i]
-            except IndexError:
-                return None
-            i += 1
+        # Getting info about all torrents on the server
+        cmd = self.base_url.format("torrents", "info")
+        torrents = req.get(cmd, cookies=self.__token).json()
+        for torrent in torrents:
+            if query in torrent["name"]:
+                return torrent["hash"]
+        return None
 
     def torrent_info(self, torrent_name: str) -> Union[list, str]:
         """Returns detailed info about a particular torrent"""
@@ -206,8 +188,6 @@ class QBWebAPI:
         cmd = self.base_url.format("torrents", "delete")
         p = {"hashes": hash, "deleteFiles": delete_files}
         req.get(cmd, cookies=self.__token, params=p)
-        # Updating hashdict after torrent removal
-        self._get_hashdict()
         return "Torrent deleted"
 
     def add_torrent(self, url: str, save_path="", seq_dl=False) -> str:
@@ -228,6 +208,5 @@ class QBWebAPI:
         # Analyzing response
         if r.status_code == 415:
             raise ValueError("Torrent link is not valid")
-        # If status_code is not 415, update hashdict
-        self._get_hashdict()
+        # If status_code is not 415, return success
         return "Torrent added successfully"

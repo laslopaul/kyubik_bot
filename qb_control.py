@@ -179,11 +179,11 @@ class QBWebAPI:
             dht,
         ]
 
-    def pause_resume(self, torrent_name=0, action="pause") -> str:
+    def pause_resume(self, torrent_name="", action="pause") -> str:
         """
-        Pause/resume a torrent. If torrent_name = 0, pause/resume all torrents
+        Pause/resume a torrent. If torrent_name = "", pause/resume all torrents
         """
-        if torrent_name == 0:
+        if torrent_name == "":
             cmd = self.base_url.format("torrents", action)
             req.get(cmd, cookies=self.__token, params={"hashes": "all"})
             return f"All torrents {action}d"

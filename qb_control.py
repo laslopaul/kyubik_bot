@@ -190,7 +190,7 @@ class QBWebAPI:
 
         hash = self._search_hash(torrent_name)
         if hash is None:
-            return "Torrent not found"
+            raise ValueError("Torrent not found")
         cmd = self.base_url.format("torrents", action)
         req.get(cmd, cookies=self.__token, params={"hashes": hash})
         return f"Torrent {action}d"
@@ -202,7 +202,7 @@ class QBWebAPI:
         """
         hash = self._search_hash(torrent_name)
         if hash is None:
-            return "Torrent not found"
+            raise ValueError("Torrent not found")
         cmd = self.base_url.format("torrents", "delete")
         p = {"hashes": hash, "deleteFiles": delete_files}
         req.get(cmd, cookies=self.__token, params=p)
@@ -227,7 +227,7 @@ class QBWebAPI:
         r = req.post(cmd, cookies=self.__token, data=d)
         # Analyzing response
         if r.status_code == 415:
-            return "Torrent link is not valid"
+            raise ValueError("Torrent link is not valid")
         # If status_code is not 415, update hashdict
         self._get_hashdict()
         return "Torrent added successfully"

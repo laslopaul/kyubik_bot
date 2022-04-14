@@ -15,7 +15,7 @@ S/L: {}
 Uploaded: {}
 UL: {}"""
 
-# Reply to /contents command (shows torrent contents)
+# Reply to /files command (shows torrent contents)
 contents = """File: {}
 Size: {}
 Progress: {}"""

@@ -1,18 +1,17 @@
 """Module parse_config\n
-Parse config file for kyubik_bot and QBWebAPI
+Config file parser for kyubik_bot and QBWebAPI
 """
 
 
-import os.path
 import json
 
 
 def parse_config(filename: str) -> dict:
-    if not os.path.exists(filename):
-        quit("Config file not found")
     with open(filename) as f:
         try:
             conf = json.load(f)
+        except FileNotFoundError:
+            quit("Config file not found")
         except json.JSONDecodeError:
             quit("ERROR! Cannot parse config file")
     if type(conf) is not dict:

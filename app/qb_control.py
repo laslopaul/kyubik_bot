@@ -7,9 +7,9 @@ https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)
 
 from typing import Generator, Union
 import requests as req
-from human_readable_size import human_readable_size as hsize
 from datetime import datetime as dt
 from datetime import timedelta
+from app.human_readable_size import human_readable_size as hsize
 
 
 class QBWebAPI:
